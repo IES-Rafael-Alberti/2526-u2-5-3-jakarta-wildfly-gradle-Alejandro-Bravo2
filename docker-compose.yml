@@ -1,0 +1,43 @@
+services:
+  wildfly:
+    build: ./2526_DAW_u5.3_jakarta-wildfly-gradle-otra
+    container_name: wildfly-compose
+    networks:
+      - interna
+    volumes:
+      - wildfly-logs:/opt/jboss/wildfly/standalone/log
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/crud-file/api/tasks || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-compose
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - interna
+    depends_on:
+      wildfly:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  interna:
+    driver: bridge
+
+volumes:
+  wildfly-logs:
